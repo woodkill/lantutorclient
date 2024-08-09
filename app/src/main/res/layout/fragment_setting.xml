@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/design_default_color_secondary"
+    tools:context=".Setting">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:background="@color/white"
+            app:layout_constraintBottom_toTopOf="@+id/constraintLayout2"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/constraintLayout2"
+            android:layout_width="409dp"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            app:layout_constraintBottom_toTopOf="@+id/saveSettingButton"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <TextView
+                android:id="@+id/tvName"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:gravity="center_vertical"
+                android:text="이름"
+                android:textSize="16sp"
+                app:layout_constraintBottom_toBottomOf="@+id/etName"
+                app:layout_constraintEnd_toEndOf="@+id/tvAge"
+                app:layout_constraintStart_toStartOf="@+id/tvLevel"
+                app:layout_constraintTop_toTopOf="@+id/etName" />
+
+            <TextView
+                android:id="@+id/tvAge"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:gravity="center_vertical"
+                android:text="나이"
+                android:textSize="16sp"
+                app:layout_constraintBottom_toBottomOf="@+id/etAge"
+                app:layout_constraintEnd_toEndOf="@+id/tvNativeLang"
+                app:layout_constraintStart_toStartOf="@+id/tvLevel"
+                app:layout_constraintTop_toTopOf="@+id/etAge" />
+
+            <TextView
+                android:id="@+id/tvNativeLang"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:gravity="center_vertical"
+                android:text="모국어"
+                android:textSize="16sp"
+                app:layout_constraintBottom_toBottomOf="@+id/etNativeLang"
+                app:layout_constraintEnd_toEndOf="@+id/tvLearnLang"
+                app:layout_constraintStart_toStartOf="@+id/tvLevel"
+                app:layout_constraintTop_toTopOf="@+id/etNativeLang" />
+
+            <TextView
+                android:id="@+id/tvLearnLang"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:gravity="center_vertical"
+                android:text="학습언어"
+                android:textSize="16sp"
+                app:layout_constraintBottom_toBottomOf="@+id/etLearnLang"
+                app:layout_constraintEnd_toEndOf="@+id/tvLevel"
+                app:layout_constraintStart_toStartOf="@+id/tvLevel"
+                app:layout_constraintTop_toTopOf="@+id/etLearnLang" />
+
+            <TextView
+                android:id="@+id/tvLevel"
+                android:layout_width="100dp"
+                android:layout_height="0dp"
+                android:layout_marginStart="16dp"
+                android:gravity="center_vertical"
+                android:text="수준"
+                android:textSize="16sp"
+                app:layout_constraintBottom_toBottomOf="@+id/etLevel"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="@+id/etLevel" />
+
+            <EditText
+                android:id="@+id/etLevel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginBottom="8dp"
+                android:ems="10"
+                android:hint="상, 중, 하"
+                android:inputType="text"
+                android:text="중"
+                android:textSize="16sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintStart_toEndOf="@+id/tvLevel" />
+
+            <EditText
+                android:id="@+id/etLearnLang"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginBottom="8dp"
+                android:ems="10"
+                android:hint="학습하려는 언어"
+                android:inputType="text"
+                android:text="영어"
+                android:textSize="16sp"
+                app:layout_constraintBottom_toTopOf="@+id/etLevel"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="1.0"
+                app:layout_constraintStart_toEndOf="@+id/tvLearnLang" />
+
+            <EditText
+                android:id="@+id/etNativeLang"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginBottom="8dp"
+                android:ems="10"
+                android:hint="모국어"
+                android:inputType="text"
+                android:text="한국어"
+                android:textSize="16sp"
+                app:layout_constraintBottom_toTopOf="@+id/etLearnLang"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintStart_toEndOf="@+id/tvNativeLang" />
+
+            <EditText
+                android:id="@+id/etAge"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginBottom="8dp"
+                android:ems="10"
+                android:hint="나이"
+                android:inputType="text"
+                android:text="56"
+                android:textSize="16sp"
+                app:layout_constraintBottom_toTopOf="@+id/etNativeLang"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintStart_toEndOf="@+id/tvAge" />
+
+            <EditText
+                android:id="@+id/etName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginBottom="8dp"
+                android:ems="10"
+                android:hint="이름"
+                android:inputType="text"
+                android:text="Woody"
+                android:textSize="16sp"
+                app:layout_constraintBottom_toTopOf="@+id/etAge"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintStart_toEndOf="@+id/tvName"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <Button
+            android:id="@+id/saveSettingButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="32dp"
+            android:layout_marginEnd="32dp"
+            android:layout_marginBottom="24dp"
+            android:text="저장"
+            android:textSize="16sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</FrameLayout>

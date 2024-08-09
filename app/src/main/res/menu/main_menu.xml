@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:title="@string/chat"
+        android:id="@+id/chat"
+        android:icon="@drawable/baseline_chat_24"/>
+    <item android:title="@string/edit"
+        android:id="@+id/edit"
+        android:icon="@drawable/baseline_edit_note_24"/>
+    <item android:title="@string/quiz"
+        android:id="@+id/quiz"
+        android:icon="@drawable/baseline_quiz_24"/>
+    <item android:title="@string/setting"
+        android:id="@+id/setting"
+        android:icon="@drawable/baseline_settings_24"/>
+</menu>

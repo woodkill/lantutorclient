@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "135299230947",
+    "project_id": "lantutor-7c285",
+    "storage_bucket": "lantutor-7c285.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:135299230947:android:535f055592e590cdbce9d6",
+        "android_client_info": {
+          "package_name": "com.example.lantutorclient"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBHVey0GqzdMpz2sxENX0psbGj8AUQq-t0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
