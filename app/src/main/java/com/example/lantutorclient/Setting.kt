@@ -6,7 +6,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Observer
 import com.example.lantutorclient.databinding.FragmentSettingBinding
+import com.example.lantutorclient.*
 import com.example.lantutorclient.viewmodel.UserViewModel
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -18,24 +20,14 @@ import com.google.firebase.firestore.FirebaseFirestore
  */
 class Setting : Fragment() {
 
-    private var name: String? = null
-    private var age: String? = null
-    private var nativeLang: String? = null
-    private var learnLang: String? = null
-    private var level: String? = null
-
     private lateinit var binding: FragmentSettingBinding
     private lateinit var db: FirebaseFirestore
 
+    // ViewModel 초기화 (Activity와 공유)
+    val userViewModel: UserViewModel by activityViewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        arguments?.let {
-            name = it.getString(ARG_NAME)
-            age = it.getString(ARG_AGE)
-            nativeLang = it.getString(ARG_NATIVE_LANG)
-            learnLang = it.getString(ARG_LEARN_LANG)
-            level = it.getString(ARG_LEVEL)
-        }
     }
 
     override fun onCreateView(
@@ -49,40 +41,51 @@ class Setting : Fragment() {
         // Firestore 인스턴스 초기화
         db = FirebaseFirestore.getInstance()
 
-        // ViewModel 초기화 (Activity와 공유)
-        val userViewModel: UserViewModel by activityViewModels()
-
-        // Firestore에서 불러온 데이터를 EditText에 채우기
-        userViewModel.userData?.let { userData ->
-            binding.etName.setText(userData["name"] as? String ?: "")
-            binding.etAge.setText(userData["age"] as? String ?: "")
-            binding.etNativeLang.setText(userData["nativeLang"] as? String ?: "")
-            binding.etLearnLang.setText(userData["learnLang"] as? String ?: "")
-            binding.etLevel.setText(userData["level"] as? String ?: "")
-        }
+        userViewModel.userData.observe(viewLifecycleOwner, Observer { userData ->
+            if (userViewModel.isUserInitiatedUpdate) {
+                // 사용자가 데이터를 직접 저장한 경우, UI 갱신을 생략
+                userViewModel.isUserInitiatedUpdate = false
+                return@Observer
+            }
+            // UI 갱신
+            userData?.let {
+                binding.etName.setText(it[KEY_NAME] as? String ?: "")
+                binding.etAge.setText(it[KEY_AGE] as? String ?: "")
+                binding.etNativeLang.setText(it[KEY_NATIVE_LANG] as? String ?: "")
+                binding.etLearnLang.setText(it[KEY_LEARN_LANG] as? String ?: "")
+                binding.etLevel.setText(it[KEY_LEVEL] as? String ?: "")
+            }
+        })
 
         // 저장 버튼 클릭 리스너 설정
         binding.saveSettingButton.setOnClickListener {
+            // UI에서 값을 가져와서
             val name = binding.etName.text.toString()
             val age = binding.etAge.text.toString()
             val nativeLang = binding.etNativeLang.text.toString()
             val learnLang = binding.etLearnLang.text.toString()
             val level = binding.etLevel.text.toString()
-            val user = hashMapOf(
-                "name" to name,
-                "age" to age,
-                "nativeLang" to nativeLang,
-                "learnLang" to learnLang,
-                "level" to level
-            )
-            // Firestore에 데이터 저장 및 ViewModel 업데이트
-            db.collection("users").document("SINGLE_USER_DOCUMENT_ID")  // 이미 존재하는 문서 ID 사용
-                .set(user)
-                .addOnSuccessListener {
-                    println("DocumentSnapshot successfully updated!")
 
+            val user = mutableMapOf<String, Any>(
+                KEY_NAME to name,
+                KEY_AGE to age,
+                KEY_NATIVE_LANG to nativeLang,
+                KEY_LEARN_LANG to learnLang,
+                KEY_LEVEL to level,
+                KEY_CREATED_AT to com.google.firebase.Timestamp.now()  // Firestore에서 현재 타임스탬프 추가
+            )
+
+            // 사용자가 데이터를 업데이트했음을 알리는 플래그 설정
+            userViewModel.isUserInitiatedUpdate = true
+
+            // Firestore에 데이터 저장 및 ViewModel 업데이트
+            db.collection(COL_USERS)
+                .add(user)
+                .addOnSuccessListener { docRef ->
+                    println("DocumentSnapshot successfully added with ID: $docRef.id")
                     // ViewModel 업데이트
-                    userViewModel.userData = user
+                    user[KEY_DOC_ID] = docRef.id
+                    userViewModel.updateUserData(user)
                 }
                 .addOnFailureListener { e ->
                     println("Error updating document: $e")
@@ -101,26 +104,11 @@ class Setting : Fragment() {
          * Use this factory method to create a new instance of
          * this fragment using the provided parameters.
          *
-         * @param param1 Parameter 1.
          * @return A new instance of fragment Setting.
          */
-        private const val ARG_NAME = "name"
-        private const val ARG_AGE = "age"
-        private const val ARG_NATIVE_LANG = "nativeLang"
-        private const val ARG_LEARN_LANG = "learnLang"
-        private const val ARG_LEVEL = "level"
 
         // TODO: Rename and change types and number of parameters
         @JvmStatic
-        fun newInstance(name: String, age: String, nativeLang: String, learnLang: String, level: String) =
-            Setting().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_NAME, name)
-                    putString(ARG_AGE, age)
-                    putString(ARG_NATIVE_LANG, nativeLang)
-                    putString(ARG_LEARN_LANG, learnLang)
-                    putString(ARG_LEVEL, level)
-                }
-            }
+        fun newInstance() = Setting()
     }
 }

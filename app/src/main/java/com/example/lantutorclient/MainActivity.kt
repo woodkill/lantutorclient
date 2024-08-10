@@ -2,17 +2,13 @@ package com.example.lantutorclient
 
 import android.os.Bundle
 import android.util.Log
-import android.view.inputmethod.InputBinding
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import com.example.lantutorclient.databinding.ActivityMainBinding
 import com.google.firebase.firestore.FirebaseFirestore
 import androidx.activity.viewModels
-import androidx.lifecycle.ViewModelProvider
 import com.example.lantutorclient.viewmodel.UserViewModel
+import com.google.firebase.firestore.Query
 
 class MainActivity : AppCompatActivity() {
 
@@ -31,14 +27,14 @@ class MainActivity : AppCompatActivity() {
         db = FirebaseFirestore.getInstance()
 
         // Firestore에서 사용자 정보 가져오기
-        if (userViewModel.userData == null) {
+        if (userViewModel.userData.value == null) {
             fetchUserData()
-        } else {
-            replaceFragmentWithCachedData()
         }
 
         // 프래그먼트 초기 설정
         replaceFragment(Setting())
+        // 프로그램적으로 'setting' 아이템을 선택 상태로 설정
+        binding.bottomNavigationView.selectedItemId = R.id.setting
 
 //        enableEdgeToEdge()
 //        setContentView(R.layout.activity_main)
@@ -53,10 +49,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.chat -> replaceFragment(Chat())
                 R.id.edit -> replaceFragment(Edit())
                 R.id.quiz -> replaceFragment(Quiz())
-                R.id.setting -> {
-                    replaceFragmentWithCachedData()
-                    true
-                }
+                R.id.setting -> replaceFragment(Setting())
                 else -> replaceFragment(Setting())
             }
         }
@@ -65,29 +58,32 @@ class MainActivity : AppCompatActivity() {
 
     private fun fetchUserData() {
         // Firestore에서 사용자 정보 가져오기
-        db.collection("users").document("SINGLE_USER_DOCUMENT_ID").get()
-            .addOnSuccessListener { document ->
-                if (document != null) {
-                    userViewModel.userData = document.data
-                    replaceFragmentWithCachedData()
+        db.collection(COL_USERS)
+            .orderBy(KEY_CREATED_AT, Query.Direction.DESCENDING)
+            .limit(1)
+            .get()
+            .addOnSuccessListener { documents ->
+                if (!documents.isEmpty) {
+                    val document = documents.documents[0]
+                    val user = document.data as MutableMap<String, Any>?
+                    user?.set(KEY_DOC_ID, document.id)
+                    userViewModel.updateUserData(document.data as MutableMap<String, Any>?)
+                } else {
+                    Log.d("MainActivity", "No such document")
                 }
             }
             .addOnFailureListener { exception ->
+                userViewModel.updateUserData(
+                    mutableMapOf(
+                        KEY_NAME to "",
+                        KEY_AGE to "",
+                        KEY_NATIVE_LANG to "",
+                        KEY_LEARN_LANG to "",
+                        KEY_LEVEL to ""
+                    )
+                )
                 Log.d("MainActivity", "get failed with ", exception)
             }
-    }
-
-    private fun replaceFragmentWithCachedData() {
-        userViewModel.userData?.let { userData ->
-            val settingFragment = Setting.newInstance(
-                userData["name"] as? String ?: "",
-                userData["age"] as? String ?: "",
-                userData["nativeLang"] as? String ?: "",
-                userData["learnLang"] as? String ?: "",
-                userData["level"] as? String ?: ""
-            )
-            replaceFragment(settingFragment)
-        }
     }
 
     private fun replaceFragment(fragment: Fragment): Boolean {
