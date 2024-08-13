@@ -14,4 +14,16 @@ class UserViewModel : ViewModel() {
     fun updateUserData(data: MutableMap<String, Any>?) {
         _userData.value = data
     }
+
+    // 새로운 키-값 업데이트 메서드
+    fun updateUserDataField(key: String, value: Any) {
+        // 현재 userData 값을 가져오거나 없으면 새로운 MutableMap을 생성
+        val currentData = _userData.value ?: mutableMapOf()
+
+        // MutableMap에 키-값을 추가 또는 업데이트
+        currentData[key] = value
+
+        // 업데이트된 데이터를 다시 LiveData에 설정
+        _userData.value = currentData
+    }
 }

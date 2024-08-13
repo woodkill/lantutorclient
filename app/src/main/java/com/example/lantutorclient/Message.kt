@@ -1,6 +1,7 @@
 package com.example.lantutorclient
 
 data class Message(
+    var id: String = "",
     val message: String? = "",
-    val byWho: Int = 2
+    val role: String = ""
 )

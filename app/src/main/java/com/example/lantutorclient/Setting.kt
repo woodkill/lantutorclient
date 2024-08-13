@@ -1,5 +1,6 @@
 package com.example.lantutorclient
 
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
@@ -15,15 +16,26 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
+import android.view.inputmethod.InputMethodManager
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.firestore.CollectionReference
+import com.google.firebase.firestore.DocumentChange
+import com.google.firebase.firestore.ListenerRegistration
 
 /**
  * A simple [Fragment] subclass.
- * Use the [Setting.newInstance] factory method to
+ * Use the [Sett    ing.newInstance] factory method to
  * create an instance of this fragment.
  */
 class Setting : Fragment() {
 
     private lateinit var binding: FragmentSettingBinding
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var adapter: MessageAdapter
+    private val messageList = ArrayList<Message>()
+    private var listenerRegistration: ListenerRegistration? = null
+
     private lateinit var db: FirebaseFirestore
     private lateinit var functions: FirebaseFunctions
 
@@ -35,19 +47,29 @@ class Setting : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
 
         // View 바인딩 초기화
         binding = FragmentSettingBinding.inflate(inflater, container, false)
 
+        val view = inflater.inflate(R.layout.fragment_setting, container, false)
+        recyclerView = binding.rvSettingMessage
+        recyclerView.layoutManager = LinearLayoutManager(context)
+        adapter = MessageAdapter(requireContext(), messageList)
+        recyclerView.adapter = adapter
+
         // Firestore 인스턴스 초기화
         db = FirebaseFirestore.getInstance()
 
         // Firebase Functions 초기화
         functions = FirebaseFunctions.getInstance()
-//        functions.useEmulator("127.0.0.1", 5001)
+        //functions.useEmulator("127.0.0.1", 5001)
+
+        // 초기 컬렉션 리스닝 설정
+        listenToCollectionChanges()
 
         userViewModel.userData.observe(viewLifecycleOwner, Observer { userData ->
             if (userViewModel.isUserInitiatedUpdate) {
@@ -67,6 +89,12 @@ class Setting : Fragment() {
 
         // 새로시작 버튼 클릭 리스너 설정
         binding.startNewBtn.setOnClickListener {
+
+            // 키보드를 숨기는 코드 추가
+            // 현재 포커스를 가지고 있는 뷰의 포커스를 제거
+            view?.clearFocus()
+            val imm = activity?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.hideSoftInputFromWindow(view?.windowToken, 0)
 
             // UI에서 값을 가져와서
             val name = binding.etName.text.toString()
@@ -90,13 +118,13 @@ class Setting : Fragment() {
             userViewModel.isUserInitiatedUpdate = true
 
             // Firestore에 데이터 저장 및 ViewModel 업데이트
-            db.collection(COL_USERS)
-                .add(user)
+            val userDoc_ref = db.collection(COL_USERS).document()
+            user[KEY_DOC_ID] = userDoc_ref.id
+            userDoc_ref.set(user)
                 .addOnSuccessListener { docRef ->
                     println("DocumentSnapshot successfully added with ID: $docRef.id")
                     // firestore에 새로 시작한 학생의 정보를 새로 만드는 것 성공.
                     // ViewModel 업데이트
-                    user[KEY_DOC_ID] = docRef.id
                     userViewModel.updateUserData(user)
                     // 새로운 학습 시작을 위한 cloud function을 호출.
                     callCloudFunctionStartNew()
@@ -113,20 +141,42 @@ class Setting : Fragment() {
         // return inflater.inflate(R.layout.fragment_setting, container, false)
     }
 
-    private fun callCloudFunctionStartNew() {
+    private fun listenToCollectionChanges() {
 
-//        functions
-//            .getHttpsCallable("on_request_example")
-//            .call()
-//            .addOnSuccessListener { result ->
-//                val response = result.data.toString()
-//                Log.d("Setting", response)
-//            }
-//            .addOnFailureListener { e ->
-//                Log.e("Setting", "Cloud Function failed", e)
-//            }
-//
-//        return
+        // 기존 리스너 제거
+        listenerRegistration?.remove()
+
+        // 새로운 컬렉션에 대한 리스너 설정
+        listenerRegistration = db.collection(COL_SETTINGS)
+            .addSnapshotListener { snapshots, e ->
+                if (e != null) {
+                    Log.w("Setting Fragment", "Setting Collection Listen failed.", e)
+                    return@addSnapshotListener
+                }
+
+                for (dc in snapshots!!.documentChanges) {
+                    when (dc.type) {
+
+                        DocumentChange.Type.ADDED -> {
+                            val newMessage = dc.document.toObject(Message::class.java)
+                            adapter.addMessage(newMessage)
+                        }
+
+                        DocumentChange.Type.MODIFIED -> {
+                            val updatedMessage = dc.document.toObject(Message::class.java)
+                            adapter.updateMessage(updatedMessage)
+                        }
+
+                        DocumentChange.Type.REMOVED -> {
+                            adapter.removeMessage(dc.document.id)
+                        }
+
+                    }
+                }
+            }
+    }
+
+    private fun callCloudFunctionStartNew() {
 
         // userViewModel.userData 를 그냥 보낸다.
         val data = userViewModel.userData.value
@@ -141,8 +191,18 @@ class Setting : Fragment() {
                 .addOnSuccessListener { result ->
                     // Cloud Function에서 반환된 응답 처리
                     val response = result.data as Map<*, *>
-                    val message = response["message"] as String
-                    Log.d("Setting", "Response from Cloud Function: $message")
+                    userViewModel.updateUserDataField(KEY_CHAT_THREAD_ID, response[KEY_CHAT_THREAD_ID] ?: "")
+//                    // Chat 프래그먼트 대화내용 리셋
+//                    val chatFragment = parentFragmentManager.findFragmentById(R.id.chatFragmentContainer) as? Chat
+//                    chatFragment?.restartListening()
+//
+//                    userViewModel.updateUserDataField(KEY_CORR_THREAD_ID, response[KEY_CORR_THREAD_ID] ?: "")
+//                    userViewModel.updateUserDataField(KEY_QUIZ_THREAD_ID, response[KEY_QUIZ_THREAD_ID] ?: "")
+
+                    Log.d("Setting", "Response from Cloud Function")
+                    Log.d("Setting", "$KEY_CHAT_THREAD_ID: $response[KEY_CHAT_THREAD_ID]")
+                    Log.d("Setting", "$KEY_CORR_THREAD_ID: $response[KEY_CORR_THREAD_ID]")
+                    Log.d("Setting", "$KEY_QUIZ_THREAD_ID: $response[KEY_QUIZ_THREAD_ID]")
                 }
                 .addOnFailureListener { e ->
                     Log.e("Setting", "Cloud Function failed", e)
