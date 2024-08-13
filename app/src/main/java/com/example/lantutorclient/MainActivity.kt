@@ -7,6 +7,7 @@ import androidx.fragment.app.Fragment
 import com.example.lantutorclient.databinding.ActivityMainBinding
 import com.google.firebase.firestore.FirebaseFirestore
 import androidx.activity.viewModels
+import androidx.appcompat.widget.Toolbar
 import com.example.lantutorclient.viewmodel.UserViewModel
 import com.google.firebase.firestore.Query
 
@@ -22,6 +23,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Toolbar를 액션 바로 설정
+        val toolbar: Toolbar = findViewById(R.id.toolbar)
+        setSupportActionBar(toolbar)
 
         // Firestore 인스턴스 초기화
         db = FirebaseFirestore.getInstance()
@@ -47,7 +52,7 @@ class MainActivity : AppCompatActivity() {
         binding.bottomNavigationView.setOnItemSelectedListener {
             when (it.itemId) {
                 R.id.chat -> replaceFragment(Chat())
-                R.id.edit -> replaceFragment(Edit())
+                R.id.edit -> replaceFragment(Corr())
                 R.id.quiz -> replaceFragment(Quiz())
                 R.id.setting -> replaceFragment(Setting())
                 else -> replaceFragment(Setting())

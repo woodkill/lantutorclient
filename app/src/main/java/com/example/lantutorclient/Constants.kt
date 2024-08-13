@@ -23,6 +23,8 @@ const val KEY_CHAT_THREAD_ID = "chatThreadId"
 const val KEY_CORR_THREAD_ID = "corrThreadId"
 const val KEY_QUIZ_THREAD_ID = "quizThreadId"
 
+const val KEY_RESULT = "result"
+
 const val KEY_OA_THREAD_ID = "openAiThreadId"
 
 const val ROLE_USER = "role"
@@ -32,3 +34,6 @@ const val ROLE_SYSTEM = "system"
 const val ROLE_TYPE_USER = 1
 const val ROLE_TYPE_ASSISTATNT = 2
 const val ROLE_TYPE_SYSTEM = 3
+
+const val RC_SUCCESS = "success"
+const val RC_FAIL = "fail"

@@ -1,21 +1,24 @@
 package com.example.lantutorclient
 
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.lantutorclient.databinding.FragmentChatBinding
 import com.example.lantutorclient.viewmodel.UserViewModel
-import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
 import com.google.firebase.functions.FirebaseFunctions
 
 /**
@@ -33,7 +36,8 @@ class Chat : Fragment() {
 
     private lateinit var db: FirebaseFirestore
     private lateinit var functions: FirebaseFunctions
-    private lateinit var currentCollection: CollectionReference
+
+    private var previousChatThreadId: String? = null
 
     // ViewModel 초기화 (Activity와 공유)
     val userViewModel: UserViewModel by activityViewModels()
@@ -68,10 +72,57 @@ class Chat : Fragment() {
         listenToCollectionChanges()
 
         userViewModel.userData.observe(viewLifecycleOwner, Observer { userData ->
-            // Chat 프래그먼트 대화내용 리셋
-            val chatFragment = parentFragmentManager.findFragmentById(R.id.chatFragmentContainer) as? Chat
-            chatFragment?.restartListening()
+            val currentChatThreadId = userData?.get(KEY_CHAT_THREAD_ID) as? String
+            // 이전의 chatThreadId와 비교하여 변경되었을 때만 실행
+            if (currentChatThreadId != previousChatThreadId) {
+                previousChatThreadId = currentChatThreadId
+                // Chat 프래그먼트 대화내용 리셋
+                val chatFragment = parentFragmentManager.findFragmentById(R.id.chatFragmentContainer) as? Chat
+                chatFragment?.restartListening()
+            }
         })
+
+        // Send 버튼 클릭 리스너 설정
+        binding.sendChatBtn.setOnClickListener {
+
+            val rootView = binding.root // 또는 requireView()
+            val focusedView = rootView.findFocus()
+            if (focusedView is EditText) {
+                focusedView.clearFocus()
+                val imm = activity?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                // 현재 포커스가 있는 뷰에서 키보드를 숨깁니다.
+                imm.hideSoftInputFromWindow(activity?.window?.decorView?.rootView?.windowToken, 0)
+            }
+
+            // userDocId
+            var userDocId = userViewModel.userData.value?.get(KEY_DOC_ID) as? String ?: ""
+            if (userDocId.isEmpty())
+                return@setOnClickListener
+            // 입력한 메세지
+            val chatContent = binding.etChatContent.text.toString().trim()
+            if (chatContent.isEmpty())
+                return@setOnClickListener
+
+            // 먼저 사용자의 메세지를 firestore에 기록
+            val userMessage_ref = db.collection(COL_USERS).document(userDocId).collection(COL_CHAT).document()
+            val userMessage = mutableMapOf<String, Any>(
+                KEY_ID to userMessage_ref.id,
+                KEY_ROLE to ROLE_USER,
+                KEY_MESSAGE to chatContent,
+                KEY_CREATED_AT to com.google.firebase.Timestamp.now()  // Firestore에서 현재 타임스탬프 추가
+            )
+            userMessage_ref.set(userMessage)
+                .addOnSuccessListener { docRef ->
+                    binding.etChatContent.text.clear()
+                    println("DocumentSnapshot successfully added with ID: $userMessage_ref.id")
+                    // firestore에 대화 메세지 하나 삽입 성공
+                    // AI의 응답을 얻기 위한 cloud function을 호출.
+                    callCloudFunctionChatMessage(chatContent)
+                }
+                .addOnFailureListener { e ->
+                    println("Error updating document: $e")
+                }
+        }
 
         // binding.root를 반환하여 뷰 바인딩을 연결합니다.
         return binding.root
@@ -80,10 +131,12 @@ class Chat : Fragment() {
 //        return inflater.inflate(R.layout.fragment_chat, container, false)
     }
 
+
     // 외부에서 리스너를 다시 시작하는 메서드
     fun restartListening() {
         listenToCollectionChanges()
     }
+
 
     private fun listenToCollectionChanges() {
 
@@ -100,7 +153,10 @@ class Chat : Fragment() {
         adapter.notifyDataSetChanged()
 
         // 새로운 컬렉션에 대한 리스너 설정
-        listenerRegistration = db.collection(COL_USERS).document(userDocId).collection(COL_CHAT)
+        listenerRegistration = db.collection(COL_USERS)
+            .document(userDocId)
+            .collection(COL_CHAT)
+            .orderBy(KEY_CREATED_AT, Query.Direction.ASCENDING)
             .addSnapshotListener { snapshots, e ->
                 if (e != null) {
                     Log.w("Chat Fragment", "chat Collection Listen failed.", e)
@@ -126,7 +182,36 @@ class Chat : Fragment() {
 
                     }
                 }
+                recyclerView.scrollToPosition(adapter.itemCount - 1)
             }
+    }
+
+    private fun callCloudFunctionChatMessage(chatMessage: String) {
+
+        // thread 등의 정보가 있어야 한다.
+        val data = userViewModel.userData.value
+        // Cloud Function 호출
+        data?.let {
+            val userDocId = it[KEY_DOC_ID] as String
+            val chat_thread_id = it[KEY_CHAT_THREAD_ID] as String
+            val sendData = hashMapOf<String, String>()
+            sendData[KEY_DOC_ID] = userDocId
+            sendData[KEY_CHAT_THREAD_ID] = chat_thread_id
+            sendData[KEY_MESSAGE] = chatMessage
+            functions
+                .getHttpsCallable("on_request_chat_message")
+                .call(sendData)
+                .addOnSuccessListener { result ->
+                    // Cloud Function에서 반환된 응답 처리
+                    val response = result.data as Map<*, *>
+                    Log.d("Chat", response[KEY_RESULT] as String)
+                }
+                .addOnFailureListener { e ->
+                    Log.e("Chat", "Cloud Function failed", e)
+                }
+        } ?: run {
+            Log.e("Chat", "No data available in userViewModel.userData")
+        }
     }
 
     companion object {
@@ -134,8 +219,6 @@ class Chat : Fragment() {
          * Use this factory method to create a new instance of
          * this fragment using the provided parameters.
          *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
          * @return A new instance of fragment Chat.
          */
         // TODO: Rename and change types and number of parameters

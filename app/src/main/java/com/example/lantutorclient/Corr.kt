@@ -10,7 +10,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.lantutorclient.databinding.FragmentQuizBinding
+import com.example.lantutorclient.databinding.FragmentCorrBinding
 import com.example.lantutorclient.viewmodel.UserViewModel
 import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FirebaseFirestore
@@ -19,12 +19,12 @@ import com.google.firebase.functions.FirebaseFunctions
 
 /**
  * A simple [Fragment] subclass.
- * Use the [Quiz.newInstance] factory method to
+ * Use the [Corr.newInstance] factory method to
  * create an instance of this fragment.
  */
-class Quiz : Fragment() {
+class Corr : Fragment() {
 
-    private lateinit var binding: FragmentQuizBinding
+    private lateinit var binding: FragmentCorrBinding
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: MessageAdapter
     private val messageList = ArrayList<Message>()
@@ -33,7 +33,7 @@ class Quiz : Fragment() {
     private lateinit var db: FirebaseFirestore
     private lateinit var functions: FirebaseFunctions
 
-    private var previousQuizThreadId: String? = null
+    private var previousCorrThreadId: String? = null
 
     // ViewModel 초기화 (Activity와 공유)
     val userViewModel: UserViewModel by activityViewModels()
@@ -49,10 +49,10 @@ class Quiz : Fragment() {
     ): View? {
 
         // View 바인딩 초기화
-        binding = FragmentQuizBinding.inflate(inflater, container, false)
+        binding = FragmentCorrBinding.inflate(inflater, container, false)
 
-        val view = inflater.inflate(R.layout.fragment_quiz, container, false)
-        recyclerView = binding.rvQuiz
+        val view = inflater.inflate(R.layout.fragment_corr, container, false)
+        recyclerView = binding.rvCorr
         recyclerView.layoutManager = LinearLayoutManager(context)
         adapter = MessageAdapter(requireContext(), messageList)
         recyclerView.adapter = adapter
@@ -68,13 +68,13 @@ class Quiz : Fragment() {
         listenToCollectionChanges()
 
         userViewModel.userData.observe(viewLifecycleOwner, Observer { userData ->
-            val currentQuizThreadId = userData?.get(KEY_QUIZ_THREAD_ID) as? String
-            // 이전의 quizThreadId와 비교하여 변경되었을 때만 실행
-            if (currentQuizThreadId != previousQuizThreadId) {
-                previousQuizThreadId = currentQuizThreadId
-                // Quiz 프래그먼트 대화내용 리셋
-                val quizFragment = parentFragmentManager.findFragmentById(R.id.quizFragmentContainer) as? Quiz
-                quizFragment?.restartListening()
+            val currentCorrThreadId = userData?.get(KEY_CORR_THREAD_ID) as? String
+            // 이전의 corrThreadId와 비교하여 변경되었을 때만 실행
+            if (currentCorrThreadId != previousCorrThreadId) {
+                previousCorrThreadId = currentCorrThreadId
+                // Corr 프래그먼트 대화내용 리셋
+                val corrFragment = parentFragmentManager.findFragmentById(R.id.corrFragmentContainer) as? Corr
+                corrFragment?.restartListening()
             }
         })
 
@@ -82,7 +82,7 @@ class Quiz : Fragment() {
         return binding.root
 
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_quiz, container, false)
+        return inflater.inflate(R.layout.fragment_corr, container, false)
     }
 
     // 외부에서 리스너를 다시 시작하는 메서드
@@ -105,10 +105,10 @@ class Quiz : Fragment() {
         adapter.notifyDataSetChanged()
 
         // 새로운 컬렉션에 대한 리스너 설정
-        listenerRegistration = db.collection(COL_USERS).document(userDocId).collection(COL_QUIZ)
+        listenerRegistration = db.collection(COL_USERS).document(userDocId).collection(COL_CORR)
             .addSnapshotListener { snapshots, e ->
                 if (e != null) {
-                    Log.w("Quiz Fragment", "quiz Collection Listen failed.", e)
+                    Log.w("Corr Fragment", "corr Collection Listen failed.", e)
                     return@addSnapshotListener
                 }
 
@@ -140,10 +140,10 @@ class Quiz : Fragment() {
          * Use this factory method to create a new instance of
          * this fragment using the provided parameters.
          *
-         * @return A new instance of fragment Quiz.
+         * @return A new instance of fragment Edit.
          */
         // TODO: Rename and change types and number of parameters
         @JvmStatic
-        fun newInstance(param1: String, param2: String) = Quiz()
+        fun newInstance(param1: String, param2: String) = Corr()
     }
 }

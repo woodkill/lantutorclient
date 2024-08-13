@@ -17,11 +17,13 @@ import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
 import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
 
 /**
  * A simple [Fragment] subclass.
@@ -90,11 +92,14 @@ class Setting : Fragment() {
         // 새로시작 버튼 클릭 리스너 설정
         binding.startNewBtn.setOnClickListener {
 
-            // 키보드를 숨기는 코드 추가
-            // 현재 포커스를 가지고 있는 뷰의 포커스를 제거
-            view?.clearFocus()
-            val imm = activity?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.hideSoftInputFromWindow(view?.windowToken, 0)
+            val rootView = binding.root // 또는 requireView()
+            val focusedView = rootView.findFocus()
+            if (focusedView is EditText) {
+                focusedView.clearFocus()
+                val imm = activity?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                // 현재 포커스가 있는 뷰에서 키보드를 숨깁니다.
+                imm.hideSoftInputFromWindow(activity?.window?.decorView?.rootView?.windowToken, 0)
+            }
 
             // UI에서 값을 가져와서
             val name = binding.etName.text.toString()
@@ -148,6 +153,7 @@ class Setting : Fragment() {
 
         // 새로운 컬렉션에 대한 리스너 설정
         listenerRegistration = db.collection(COL_SETTINGS)
+            .orderBy(KEY_CREATED_AT, Query.Direction.ASCENDING)
             .addSnapshotListener { snapshots, e ->
                 if (e != null) {
                     Log.w("Setting Fragment", "Setting Collection Listen failed.", e)
@@ -156,23 +162,20 @@ class Setting : Fragment() {
 
                 for (dc in snapshots!!.documentChanges) {
                     when (dc.type) {
-
                         DocumentChange.Type.ADDED -> {
                             val newMessage = dc.document.toObject(Message::class.java)
                             adapter.addMessage(newMessage)
                         }
-
                         DocumentChange.Type.MODIFIED -> {
                             val updatedMessage = dc.document.toObject(Message::class.java)
                             adapter.updateMessage(updatedMessage)
                         }
-
                         DocumentChange.Type.REMOVED -> {
                             adapter.removeMessage(dc.document.id)
                         }
-
                     }
                 }
+                recyclerView.scrollToPosition(adapter.itemCount - 1)
             }
     }
 
@@ -192,10 +195,6 @@ class Setting : Fragment() {
                     // Cloud Function에서 반환된 응답 처리
                     val response = result.data as Map<*, *>
                     userViewModel.updateUserDataField(KEY_CHAT_THREAD_ID, response[KEY_CHAT_THREAD_ID] ?: "")
-//                    // Chat 프래그먼트 대화내용 리셋
-//                    val chatFragment = parentFragmentManager.findFragmentById(R.id.chatFragmentContainer) as? Chat
-//                    chatFragment?.restartListening()
-//
 //                    userViewModel.updateUserDataField(KEY_CORR_THREAD_ID, response[KEY_CORR_THREAD_ID] ?: "")
 //                    userViewModel.updateUserDataField(KEY_QUIZ_THREAD_ID, response[KEY_QUIZ_THREAD_ID] ?: "")
 
