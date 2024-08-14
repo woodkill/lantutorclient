@@ -82,6 +82,8 @@ class Chat : Fragment() {
             }
         })
 
+        // TODO:editText 클릭하면 recyclerview 스크롤다운하는 코드 넣자.
+
         // Send 버튼 클릭 리스너 설정
         binding.sendChatBtn.setOnClickListener {
 
@@ -117,7 +119,7 @@ class Chat : Fragment() {
                     println("DocumentSnapshot successfully added with ID: $userMessage_ref.id")
                     // firestore에 대화 메세지 하나 삽입 성공
                     // AI의 응답을 얻기 위한 cloud function을 호출.
-                    callCloudFunctionChatMessage(chatContent)
+                    callCloudFunctionUserMessage(chatContent)
                 }
                 .addOnFailureListener { e ->
                     println("Error updating document: $e")
@@ -128,7 +130,7 @@ class Chat : Fragment() {
         return binding.root
 
         // Inflate the layout for this fragment
-//        return inflater.inflate(R.layout.fragment_chat, container, false)
+        // return inflater.inflate(R.layout.fragment_chat, container, false)
     }
 
 
@@ -186,7 +188,7 @@ class Chat : Fragment() {
             }
     }
 
-    private fun callCloudFunctionChatMessage(chatMessage: String) {
+    private fun callCloudFunctionUserMessage(chatMessage: String) {
 
         // thread 등의 정보가 있어야 한다.
         val data = userViewModel.userData.value
@@ -195,11 +197,12 @@ class Chat : Fragment() {
             val userDocId = it[KEY_DOC_ID] as String
             val chat_thread_id = it[KEY_CHAT_THREAD_ID] as String
             val sendData = hashMapOf<String, String>()
+            sendData[KEY_LEARN_TYPE] = KEY_CHAT
             sendData[KEY_DOC_ID] = userDocId
-            sendData[KEY_CHAT_THREAD_ID] = chat_thread_id
+            sendData[KEY_THREAD_ID] = chat_thread_id
             sendData[KEY_MESSAGE] = chatMessage
             functions
-                .getHttpsCallable("on_request_chat_message")
+                .getHttpsCallable("on_request_user_message")
                 .call(sendData)
                 .addOnSuccessListener { result ->
                     // Cloud Function에서 반환된 응답 처리

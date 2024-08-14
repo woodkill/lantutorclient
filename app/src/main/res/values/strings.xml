@@ -1,9 +1,9 @@
 <resources>
     <string name="app_name">과학탐구대회 AI 언어학습기</string>
-    <string name="chat">Chat</string>
-    <string name="edit">Edit</string>
-    <string name="quiz">Quiz</string>
-    <string name="setting">Setting</string>
+    <string name="chat">대화</string>
+    <string name="edit">교정</string>
+    <string name="quiz">퀴즈</string>
+    <string name="setting">학생설정</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

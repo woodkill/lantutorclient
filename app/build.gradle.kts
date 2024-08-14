@@ -65,4 +65,7 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.6.0") // Activity KTX (Activity에서 viewModels 사용)
     implementation("androidx.fragment:fragment-ktx:1.5.0") // Fragment KTX (Fragment에서 viewModels 사용)
 
+    // markdown
+    implementation("io.noties.markwon:core:4.6.2")
+
 }

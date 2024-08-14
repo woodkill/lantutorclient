@@ -15,6 +15,7 @@ import com.example.lantutorclient.viewmodel.UserViewModel
 import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
 import com.google.firebase.functions.FirebaseFunctions
 
 /**
@@ -22,7 +23,7 @@ import com.google.firebase.functions.FirebaseFunctions
  * Use the [Quiz.newInstance] factory method to
  * create an instance of this fragment.
  */
-class Quiz : Fragment() {
+class Quiz : Fragment(), View.OnClickListener {
 
     private lateinit var binding: FragmentQuizBinding
     private lateinit var recyclerView: RecyclerView
@@ -57,6 +58,14 @@ class Quiz : Fragment() {
         adapter = MessageAdapter(requireContext(), messageList)
         recyclerView.adapter = adapter
 
+        // 버튼들을 찾아서 클릭 리스너 설정
+        binding.startQuizBtn.setOnClickListener(this)
+        binding.endQuizBtn.setOnClickListener(this)
+        binding.answer1Btn.setOnClickListener(this)
+        binding.answer2Btn.setOnClickListener(this)
+        binding.answer3Btn.setOnClickListener(this)
+        binding.answer4Btn.setOnClickListener(this)
+
         // Firestore 인스턴스 초기화
         db = FirebaseFirestore.getInstance()
 
@@ -73,7 +82,8 @@ class Quiz : Fragment() {
             if (currentQuizThreadId != previousQuizThreadId) {
                 previousQuizThreadId = currentQuizThreadId
                 // Quiz 프래그먼트 대화내용 리셋
-                val quizFragment = parentFragmentManager.findFragmentById(R.id.quizFragmentContainer) as? Quiz
+                val quizFragment =
+                    parentFragmentManager.findFragmentById(R.id.quizFragmentContainer) as? Quiz
                 quizFragment?.restartListening()
             }
         })
@@ -82,8 +92,82 @@ class Quiz : Fragment() {
         return binding.root
 
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_quiz, container, false)
+        // return inflater.inflate(R.layout.fragment_quiz, container, false)
     }
+
+    // 클릭 리스너 처리 함수
+    override fun onClick(v: View?) {
+
+        // userDocId
+        var userDocId = userViewModel.userData.value?.get(KEY_DOC_ID) as? String ?: ""
+        if (userDocId.isEmpty())
+            return
+
+        var msg =
+        when (v?.id) {
+            R.id.startQuizBtn -> "퀴즈시작"
+            R.id.endQuizBtn -> "퀴즈종료"
+            R.id.answer_1_Btn -> "1"
+            R.id.answer_2_Btn -> "2"
+            R.id.answer_3_Btn -> "3"
+            R.id.answer_4_Btn -> "4"
+            else -> ""
+        }
+
+        if (msg.isEmpty())
+            return
+
+        // 먼저 사용자의 메세지를 firestore에 기록
+        val userMessage_ref = db.collection(COL_USERS).document(userDocId).collection(COL_QUIZ).document()
+        val userMessage = mutableMapOf<String, Any>(
+            KEY_ID to userMessage_ref.id,
+            KEY_ROLE to ROLE_USER,
+            KEY_MESSAGE to msg,
+            KEY_CREATED_AT to com.google.firebase.Timestamp.now()  // Firestore에서 현재 타임스탬프 추가
+        )
+
+        userMessage_ref.set(userMessage)
+            .addOnSuccessListener { docRef ->
+                println("DocumentSnapshot successfully added with ID: $userMessage_ref.id")
+                // firestore에 대화 메세지 하나 삽입 성공
+                // AI의 응답을 얻기 위한 cloud function을 호출.
+                callCloudFunctionUserMessage(msg)
+            }
+            .addOnFailureListener { e ->
+                println("Error updating document: $e")
+            }
+
+    }
+
+    private fun callCloudFunctionUserMessage(quizMessage: String) {
+
+        // thread 등의 정보가 있어야 한다.
+        val data = userViewModel.userData.value
+        // Cloud Function 호출
+        data?.let {
+            val userDocId = it[KEY_DOC_ID] as String
+            val chat_thread_id = it[KEY_QUIZ_THREAD_ID] as String
+            val sendData = hashMapOf<String, String>()
+            sendData[KEY_LEARN_TYPE] = KEY_QUIZ
+            sendData[KEY_DOC_ID] = userDocId
+            sendData[KEY_THREAD_ID] = chat_thread_id
+            sendData[KEY_MESSAGE] = quizMessage
+            functions
+                .getHttpsCallable("on_request_user_message")
+                .call(sendData)
+                .addOnSuccessListener { result ->
+                    // Cloud Function에서 반환된 응답 처리
+                    val response = result.data as Map<*, *>
+                    Log.d("Quiz", response[KEY_RESULT] as String)
+                }
+                .addOnFailureListener { e ->
+                    Log.e("Quiz", "Cloud Function failed", e)
+                }
+        } ?: run {
+            Log.e("Quiz", "No data available in userViewModel.userData")
+        }
+    }
+
 
     // 외부에서 리스너를 다시 시작하는 메서드
     fun restartListening() {
@@ -105,7 +189,10 @@ class Quiz : Fragment() {
         adapter.notifyDataSetChanged()
 
         // 새로운 컬렉션에 대한 리스너 설정
-        listenerRegistration = db.collection(COL_USERS).document(userDocId).collection(COL_QUIZ)
+        listenerRegistration = db.collection(COL_USERS)
+            .document(userDocId)
+            .collection(COL_QUIZ)
+            .orderBy(KEY_CREATED_AT, Query.Direction.ASCENDING)
             .addSnapshotListener { snapshots, e ->
                 if (e != null) {
                     Log.w("Quiz Fragment", "quiz Collection Listen failed.", e)

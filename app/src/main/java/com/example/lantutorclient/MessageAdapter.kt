@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import io.noties.markwon.Markwon
 
 class MessageAdapter(private val context: Context, private val messageList: ArrayList<Message>) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -41,13 +42,26 @@ class MessageAdapter(private val context: Context, private val messageList: Arra
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+//        val currentMessage = messageList[position]
+//        if (currentMessage.role == ROLE_ASSISTATNT) {
+//            val viewHolder = holder as ReceiveViewHolder
+//            viewHolder.receiveMessage.text = currentMessage.message.toString()
+//        } else {
+//            val viewHolder = holder as SentViewHolder
+//            viewHolder.sentMessage.text = currentMessage.message.toString()
+//        }
         val currentMessage = messageList[position]
+        var markdownText = currentMessage.message.toString()
         if (currentMessage.role == ROLE_ASSISTATNT) {
             val viewHolder = holder as ReceiveViewHolder
-            viewHolder.receiveMessage.text = currentMessage.message.toString()
+            val markdown = Markwon.create(viewHolder.receiveMessage.context)
+            markdown.setMarkdown(viewHolder.receiveMessage, markdownText)
+            //viewHolder.receiveMessage.text = currentMessage.message.toString()
         } else {
             val viewHolder = holder as SentViewHolder
-            viewHolder.sentMessage.text = currentMessage.message.toString()
+            val markdown = Markwon.create(viewHolder.sentMessage.context)
+            markdown.setMarkdown(viewHolder.sentMessage, markdownText)
+            //viewHolder.sentMessage.text = currentMessage.message.toString()
         }
     }
 
